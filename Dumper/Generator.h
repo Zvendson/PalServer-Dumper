@@ -18,13 +18,17 @@ concept GeneratorImplementation = requires(GeneratorType t)
 
     GeneratorType::MainFolderName;
     requires(std::same_as<decltype(GeneratorType::MainFolderName), std::string>);
-    GeneratorType::SubfolderName;
-    requires(std::same_as<decltype(GeneratorType::SubfolderName), std::string>);
+    GeneratorType::IncludefolderName;
+    requires(std::same_as<decltype(GeneratorType::IncludefolderName), std::string>);
+    GeneratorType::SourcefolderName;
+    requires(std::same_as<decltype(GeneratorType::SourcefolderName), std::string>);
 
     GeneratorType::MainFolder;
     requires(std::same_as<decltype(GeneratorType::MainFolder), fs::path>);
-    GeneratorType::Subfolder;
-    requires(std::same_as<decltype(GeneratorType::Subfolder), fs::path>);
+    GeneratorType::Includefolder;
+    requires(std::same_as<decltype(GeneratorType::Includefolder), fs::path>);
+    GeneratorType::Sourcefolder;
+    requires(std::same_as<decltype(GeneratorType::Sourcefolder), fs::path>);
     
     /* Require static functions */
     GeneratorType::Generate();
@@ -40,8 +44,10 @@ private:
 
 private:
     static inline fs::path DumperFolder;
+    static inline HMODULE  Module = nullptr;
 
 public:
+    static void InitModule(HMODULE);
     static void InitEngineCore();
     static void InitInternal();
 
@@ -49,7 +55,7 @@ private:
     static bool SetupDumperFolder();
 
     static bool SetupFolders(std::string& FolderName, fs::path& OutFolder);
-    static bool SetupFolders(std::string& FolderName, fs::path& OutFolder, std::string& SubfolderName, fs::path& OutSubFolder);
+    static bool SetupFolders(std::string& FolderName, fs::path& OutFolder, std::string& IncludefolderName, fs::path& OutSubFolder, std::string& SourcefolderName, fs::path& Sourcefolder);
 
 public:
     template<GeneratorImplementation GeneratorType>
@@ -63,8 +69,14 @@ public:
             ObjectArray::DumpObjects(DumperFolder);
         }
 
-        if (!SetupFolders(GeneratorType::MainFolderName, GeneratorType::MainFolder, GeneratorType::SubfolderName, GeneratorType::Subfolder))
+        if (!SetupFolders(
+            GeneratorType::MainFolderName, GeneratorType::MainFolder, 
+            GeneratorType::IncludefolderName, GeneratorType::Includefolder, 
+            GeneratorType::SourcefolderName, GeneratorType::Sourcefolder)
+            )
+        {
             return;
+        }
 
         GeneratorType::InitPredefinedMembers();
         GeneratorType::InitPredefinedFunctions();

@@ -1365,10 +1365,10 @@ void CppGenerator::GenerateSDKHeader(StreamType& SdkHpp)
 		const bool bHasStructsFile = (CurrentPackage.HasStructs() || CurrentPackage.HasEnums());
 
 		if (bIsStruct && bHasStructsFile)
-			SdkHpp << std::format("#include \"SDK/{}_structs.hpp\"\n", CurrentPackage.GetName());
+			SdkHpp << std::format("#include \"{}/{}_structs.hpp\"\n", IncludefolderName, CurrentPackage.GetName());
 
 		if (!bIsStruct && bHasClassesFile)
-			SdkHpp << std::format("#include \"SDK/{}_classes.hpp\"\n", CurrentPackage.GetName());
+			SdkHpp << std::format("#include \"{}/{}_classes.hpp\"\n", IncludefolderName, CurrentPackage.GetName());
 	};
 
 	PackageManager::IterateDependencies(ForEachElementCallback);
@@ -1381,40 +1381,49 @@ void CppGenerator::WriteFileHead(StreamType& File, PackageInfoHandle Package, EF
 {
 	namespace CppSettings = Settings::CppGenerator;
 
-	File << R"(#pragma once
+	bool isCPP = Type == EFileType::BasicCpp || Type == EFileType::Functions;
 
 	if (!isCPP)
 		File << "#pragma once\n\n"; // Sorry for removing the credits in every file but I prefer giving them once.
 
 	if (Type == EFileType::SdkHpp)
-		File << std::format("\n// {}\n// {}\n", Settings::Generator::GameName, Settings::Generator::GameVersion);
-	
+		File << std::format("// {}\n\n", Settings::Generator::GameVersion);
 
-	File << std::format("\n// {}\n\n", Package.IsValidHandle() ? std::format("Package: {}", Package.GetName()) : CustomFileComment);
-
+	if (!CustomFileComment.empty())
+		File << std::format("// {}\n\n", CustomFileComment);
 
 	if (!CustomIncludes.empty())
 		File << CustomIncludes + "\n";
 
-	if (Type != EFileType::BasicHpp && Type != EFileType::NameCollisionsInl && Type != EFileType::PropertyFixup && Type != EFileType::SdkHpp && Type != EFileType::DebugAssertions && Type != EFileType::UnrealContainers)
-		File << "#include \"Basic.hpp\"\n";
+	if (Type != EFileType::BasicHpp 
+	 && Type != EFileType::NameCollisionsInl 
+	 && Type != EFileType::PropertyFixup 
+	 && Type != EFileType::SdkHpp 
+	 && Type != EFileType::DebugAssertions 
+	 && Type != EFileType::UnrealContainers)
+	{
+		if (isCPP)
+			File << std::format("#include \"{}/Basic.hpp\"\n", IncludefolderName);
+		else 
+			File << "#include \"Basic.hpp\"\n";
+	}
 
 	if (Type == EFileType::SdkHpp)
-		File << "#include \"SDK/Basic.hpp\"\n";
+		File << std::format("#include \"{}/Basic.hpp\"\n", IncludefolderName);
 
 	if (Type == EFileType::DebugAssertions)
-		File << "#include \"SDK.hpp\"\n";
+		File << "#include \"PalServer.hpp\"\n";
 
 	if (Type == EFileType::BasicHpp)
 	{
-		File << "#include \"../PropertyFixup.hpp\"\n";
-		File << "#include \"../UnrealContainers.hpp\"\n";
+		File << "#include \"PropertyFixup.hpp\"\n";
+		File << "#include \"UnrealContainers.hpp\"\n";
 	}
 
 	if (Type == EFileType::BasicCpp)
 	{
-		File << "\n#include \"CoreUObject_classes.hpp\"";
-		File << "\n#include \"CoreUObject_structs.hpp\"\n";
+		File << std::format("\n#include \"{}/CoreUObject_classes.hpp\"", IncludefolderName);
+		File << std::format("\n#include \"{}/CoreUObject_structs.hpp\"\n", IncludefolderName);
 	}
 
 	if (Type == EFileType::Functions && (Package.HasClasses() || Package.HasParameterStructs()))
@@ -1424,10 +1433,10 @@ void CppGenerator::WriteFileHead(StreamType& File, PackageInfoHandle Package, EF
 		File << "\n";
 
 		if (Package.HasClasses())
-			File << std::format("#include \"{}_classes.hpp\"\n", PackageName);
+			File << std::format("#include \"{}/{}_classes.hpp\"\n", IncludefolderName, PackageName);
 
 		if (Package.HasParameterStructs())
-			File << std::format("#include \"{}_parameters.hpp\"\n", PackageName);
+			File << std::format("#include \"{}/{}_parameters.hpp\"\n", IncludefolderName, PackageName);
 
 		File << "\n";
 	}
@@ -1497,25 +1506,32 @@ void CppGenerator::WriteFileEnd(StreamType& File, EFileType Type)
 
 void CppGenerator::Generate()
 {
+	// Dont like this but im trying to modify the existing system :|
+	std::string namespaceName = Settings::CppGenerator::SDKNamespaceName;
+	fs::create_directories(Includefolder / namespaceName);
+	IncludefolderName = namespaceName;
+
 	// Generate SDK.hpp with sorted packages
-	StreamType SdkHpp(MainFolder / "SDK.hpp");
+	StreamType SdkHpp(Includefolder / "PalServer.hpp");
 	GenerateSDKHeader(SdkHpp);
 
+	Includefolder /= namespaceName;
+
 	// Generate PropertyFixup.hpp
-	StreamType PropertyFixup(MainFolder / "PropertyFixup.hpp");
+	StreamType PropertyFixup(Includefolder / "PropertyFixup.hpp");
 	GeneratePropertyFixupFile(PropertyFixup);
 
 	// Generate NameCollisions.inl file containing forward declarations for classes in namespaces (potentially requires lock)
-	StreamType NameCollisionsInl(MainFolder / "NameCollisions.inl");
+	StreamType NameCollisionsInl(Includefolder / "NameCollisions.inl");
 	GenerateNameCollisionsInl(NameCollisionsInl);
 
 	// Generate UnrealContainers.hpp
-	StreamType UnrealContainers(MainFolder / "UnrealContainers.hpp");
+	StreamType UnrealContainers(Includefolder / "UnrealContainers.hpp");
 	GenerateUnrealContainers(UnrealContainers);
 
 	// Generate Basic.hpp and Basic.cpp files
-	StreamType BasicHpp(Subfolder / "Basic.hpp");
-	StreamType BasicCpp(Subfolder / "Basic.cpp");
+	StreamType BasicHpp(Includefolder / "Basic.hpp");
+	StreamType BasicCpp(Sourcefolder / "Basic.cpp");
 	GenerateBasicFiles(BasicHpp, BasicCpp);
 
 
@@ -1542,7 +1558,7 @@ void CppGenerator::Generate()
 		/* Create files and handles namespaces and includes */
 		if (Package.HasClasses())
 		{
-			ClassesFile = StreamType(Subfolder / (FileName + "_classes.hpp"));
+			ClassesFile = StreamType(Includefolder / (FileName + "_classes.hpp"));
 
 			if (!ClassesFile.is_open())
 				std::cout << "Error opening file \"" << (FileName + "_classes.hpp") << "\"" << std::endl;
@@ -1555,7 +1571,7 @@ void CppGenerator::Generate()
 
 		if (Package.HasStructs() || Package.HasEnums())
 		{
-			StructsFile = StreamType(Subfolder / (FileName + "_structs.hpp"));
+			StructsFile = StreamType(Includefolder / (FileName + "_structs.hpp"));
 
 			if (!StructsFile.is_open())
 				std::cout << "Error opening file \"" << (FileName + "_structs.hpp") << "\"" << std::endl;
@@ -1568,7 +1584,7 @@ void CppGenerator::Generate()
 
 		if (Package.HasParameterStructs())
 		{
-			ParametersFile = StreamType(Subfolder / (FileName + "_parameters.hpp"));
+			ParametersFile = StreamType(Includefolder / (FileName + "_parameters.hpp"));
 
 			if (!ParametersFile.is_open())
 				std::cout << "Error opening file \"" << (FileName + "_parameters.hpp") << "\"" << std::endl;
@@ -1578,7 +1594,7 @@ void CppGenerator::Generate()
 
 		if (Package.HasFunctions())
 		{
-			FunctionsFile = StreamType(Subfolder / (FileName + "_functions.cpp"));
+			FunctionsFile = StreamType(Sourcefolder / (FileName + "_functions.cpp"));
 
 			if (!FunctionsFile.is_open())
 				std::cout << "Error opening file \"" << (FileName + "_functions.cpp") << "\"" << std::endl;
@@ -2759,14 +2775,14 @@ void CppGenerator::GenerateBasicFiles(StreamType& BasicHpp, StreamType& BasicCpp
 using namespace UC;
 )";
 
-	BasicHpp << "\n#include \"../NameCollisions.inl\"\n";
+	BasicHpp << "\n#include \"NameCollisions.inl\"\n";
 
 	/* Offsets and disclaimer */
 	BasicHpp << std::format(R"(
 /*
 * Disclaimer:
 *	- The 'GNames' is only a fallback and null by default, FName::AppendString is used
-*	- THe 'GWorld' offset is not used by the SDK, it's just there for "decoration", use the provided 'UWorld::GetWorld()' function instead
+*	- The 'GWorld' offset is not used by the SDK, it's just there for "decoration", use the provided 'UWorld::GetWorld()' function instead
 */
 namespace Offsets
 {{

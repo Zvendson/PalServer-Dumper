@@ -73,11 +73,13 @@ private:
 public:
     static inline PredefinedMemberLookupMapType PredefinedMembers;
 
-    static inline std::string MainFolderName = "CppSDK";
-    static inline std::string SubfolderName = "SDK";
+    static inline std::string MainFolderName    = "PalSDK";
+    static inline std::string IncludefolderName = "include";
+    static inline std::string SourcefolderName  = "source";
 
     static inline fs::path MainFolder;
-    static inline fs::path Subfolder;
+    static inline fs::path Includefolder;
+    static inline fs::path Sourcefolder;
 
 private:
     static inline std::vector<PredefinedStruct> PredefinedStructs;

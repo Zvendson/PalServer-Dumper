@@ -92,10 +92,12 @@ public:
     static inline PredefinedMemberLookupMapType PredefinedMembers;
 
     static inline std::string MainFolderName = "Mappings";
-    static inline std::string SubfolderName = "";
+    static inline std::string IncludefolderName = "";
+    static inline std::string SourcefolderName = "";
 
     static inline fs::path MainFolder;
-    static inline fs::path Subfolder;
+    static inline fs::path Includefolder;
+    static inline fs::path Sourcefolder;
 
 private:
     template<typename InStreamType, typename T>

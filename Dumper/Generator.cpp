@@ -174,18 +174,20 @@ bool Generator::SetupFolders(std::string& FolderName, fs::path& OutFolder)
 {
 	fs::path Dummy;
 	std::string EmptyName = "";
-	return SetupFolders(FolderName, OutFolder, EmptyName, Dummy);
+	return SetupFolders(FolderName, OutFolder, EmptyName, Dummy, EmptyName, Dummy);
 }
 
-bool Generator::SetupFolders(std::string& FolderName, fs::path& OutFolder, std::string& SubfolderName, fs::path& OutSubFolder)
+bool Generator::SetupFolders(std::string& FolderName, fs::path& OutFolder, std::string& IncludefolderName, fs::path& OutIncludeFolder, std::string& SourcefolderName, fs::path& OutSourcefolder)
 {
 	FileNameHelper::MakeValidFileName(FolderName);
-	FileNameHelper::MakeValidFileName(SubfolderName);
+	FileNameHelper::MakeValidFileName(IncludefolderName);
+	FileNameHelper::MakeValidFileName(SourcefolderName);
 
 	try
 	{
 		OutFolder = DumperFolder / FolderName;
-		OutSubFolder = OutFolder / SubfolderName;
+		OutIncludeFolder = OutFolder / IncludefolderName;
+		OutSourcefolder = OutFolder / SourcefolderName;
 				
 		if (fs::exists(OutFolder))
 		{
@@ -198,8 +200,11 @@ bool Generator::SetupFolders(std::string& FolderName, fs::path& OutFolder, std::
 
 		fs::create_directories(OutFolder);
 
-		if (!SubfolderName.empty())
-			fs::create_directories(OutSubFolder);
+		if (!IncludefolderName.empty())
+			fs::create_directories(OutIncludeFolder);
+
+		if (!SourcefolderName.empty())
+			fs::create_directories(OutSourcefolder);
 	}
 	catch (const std::filesystem::filesystem_error& fe)
 	{

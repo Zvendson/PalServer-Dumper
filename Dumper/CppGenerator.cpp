@@ -1127,7 +1127,9 @@ std::string CppGenerator::GetMemberTypeStringWithoutConst(UEProperty Member, int
 		I dislike it but have to focus on other things.
 		I just want to get rid of the warnings.
 		*/
-		if (name == "FField")
+		if (name == "FProperty" ||
+			name == "FField" ||
+			name == "FStructProperty")
 		    return std::format("TFieldPath<class {}>", name);
 
 		return std::format("TFieldPath<struct {}>", name);
@@ -1889,7 +1891,8 @@ void CppGenerator::InitPredefinedMembers()
 		},
 	};
 
-	std::string PropertyTypePtr = Settings::Internal::bUseFProperty ? "struct FProperty*" : "class UProperty*";
+	//std::string PropertyTypePtr = Settings::Internal::bUseFProperty ? "struct FProperty*" : "class UProperty*";
+	std::string PropertyTypePtr = Settings::Internal::bUseFProperty ? "class FProperty*" : "class UProperty*";
 
 	std::vector<PredefinedMember> PropertyMembers =
 	{

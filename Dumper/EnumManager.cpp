@@ -65,7 +65,7 @@ const StringEntry& EnumInfoHandle::GetName() const
 	return EnumManager::GetEnumName(*Info);
 }
 
-int32 EnumInfoHandle::GetNumMembers() const
+size_t EnumInfoHandle::GetNumMembers() const
 {
 	return Info->MemberInfos.size();
 }
@@ -147,13 +147,13 @@ void EnumManager::InitInternal()
 				std::string NameWitPrefix = Name.ToString();
 
 				if (!NameWitPrefix.ends_with("_MAX"))
-					EnumMaxValue = max(EnumMaxValue, Value);
+					EnumMaxValue = max(EnumMaxValue, static_cast<uint64>(Value));
 
 				auto [NameIndex, bWasInserted] = UniqueEnumValueNames.FindOrAdd(MakeNameValid(NameWitPrefix.substr(NameWitPrefix.find_last_of("::") + 1)));
 
 				EnumCollisionInfo CurrentEnumValueInfo;
 				CurrentEnumValueInfo.MemberName = NameIndex;
-				CurrentEnumValueInfo.MemberValue = Value;
+				CurrentEnumValueInfo.MemberValue = static_cast<uint64>(Value);
 
 				if (bWasInserted) [[likely]]
 				{

@@ -38,7 +38,7 @@ uint8 EnumWrapper::GetUnderlyingTypeSize() const
     return InfoHandle.GetUnderlyingTypeSize();
 }
 
-int32 EnumWrapper::GetNumMembers() const
+size_t EnumWrapper::GetNumMembers() const
 {
     return InfoHandle.GetNumMembers();
 }

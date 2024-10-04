@@ -63,7 +63,7 @@ void Off::InSDK::ProcessEvent::InitPE(int32 Index)
 
 	uintptr_t Imagebase = GetImageBase();
 
-	Off::InSDK::ProcessEvent::PEOffset = uintptr_t(VFT[Off::InSDK::ProcessEvent::PEIndex]) - Imagebase;
+	Off::InSDK::ProcessEvent::PEOffset = static_cast<int32>(uintptr_t(VFT[Off::InSDK::ProcessEvent::PEIndex]) - Imagebase);
 
 	std::cout << std::format("VFT-Offset: 0x{:X}\n", uintptr_t(VFT) - Imagebase);
 }

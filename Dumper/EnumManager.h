@@ -5,7 +5,7 @@ class EnumInfoHandle;
 
 class EnumManager;
 
-struct EnumCollisionInfo
+class EnumCollisionInfo
 {
 private:
 	friend class EnumManager;
@@ -76,7 +76,7 @@ public:
 	uint8 GetUnderlyingTypeSize() const;
 	const StringEntry& GetName() const;
 
-	int32 GetNumMembers() const;
+	size_t GetNumMembers() const;
 
 	CollisionInfoIterator GetMemberCollisionInfoIterator() const;
 };

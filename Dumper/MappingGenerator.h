@@ -86,7 +86,7 @@ private:
     static constexpr uint16 UsmapFileMagic = 0x30C4;
 
 private:
-    static inline uint64 NameCounter = 0x0;
+    static inline uint32 NameCounter = 0x0;
 
 public:
     static inline PredefinedMemberLookupMapType PredefinedMembers;

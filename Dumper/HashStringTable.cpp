@@ -61,10 +61,7 @@ const StringEntry& HashStringTable::GetStringEntry(int32 BucketIndex, int32 InBu
 
 void HashStringTable::ResizeBucket(StringBucket& Bucket)
 {
-    int32 BucketIdx = &Bucket - Buckets;
-
-    const uint32 OldBucketSize = Bucket.Size;
-    const uint64 NewBucketSizeMax = Bucket.SizeMax * 1.5;
+    const uint32 NewBucketSizeMax = static_cast<uint32>(Bucket.SizeMax * 1.5);
 
     uint8_t* NewData = static_cast<uint8_t*>(realloc(Bucket.Data, NewBucketSizeMax));
 
@@ -198,12 +195,12 @@ inline std::pair<HashStringTableIndex, bool> HashStringTable::FindOrAdd(const Ch
 /* returns pair<Index, bWasAdded> */
 std::pair<HashStringTableIndex, bool> HashStringTable::FindOrAdd(const std::string& String, bool bShouldMarkAsDuplicated)
 {
-    return FindOrAdd(String.c_str(), String.size(), bShouldMarkAsDuplicated);
+    return FindOrAdd(String.c_str(), static_cast<int32>(String.size()), bShouldMarkAsDuplicated);
 }
 
 int32 HashStringTable::GetTotalUsedSize() const
 {
-    uint64 TotalMemoryUsed = 0x0;
+    int32 TotalMemoryUsed = 0x0;
 
     for (int i = 0; i < NumBuckets; i++)
     {

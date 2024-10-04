@@ -134,7 +134,7 @@ int32 MappingGenerator::AddNameToData(std::stringstream& NameTable, const std::s
 {
 	if constexpr (Settings::MappingGenerator::bShouldCheckForDuplicatedNames)
 	{
-		static std::unordered_map<std::string, int32> NameMap;
+		static std::unordered_map<std::string, uint32> NameMap;
 		
 		auto [It, bInserted] = NameMap.insert({ Name, NameCounter });
 

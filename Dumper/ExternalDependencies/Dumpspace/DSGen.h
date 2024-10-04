@@ -115,7 +115,7 @@ public:
 	{
 		std::string enumType; // enum type, uint32_t or int or uint64_t
 		std::string enumName; // name of the enum 
-		std::vector<std::pair<std::string, int>> enumMembers; //enum members, their name and representative number (abc = 5)
+		std::vector<std::pair<std::string, size_t>> enumMembers; //enum members, their name and representative number (abc = 5)
 	};
 
 

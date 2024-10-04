@@ -32,8 +32,8 @@ void FNameEntry::Init(const uint8_t* FirstChunkPtr, int64 NameEntryStringOffset)
 
 		constexpr uint32 BytePropertyStartAsUint32 = 'etyB'; // "Byte" part of "ByteProperty"
 
-		Off::FNameEntry::NamePool::StringOffset = NameEntryStringOffset;
-		Off::FNameEntry::NamePool::HeaderOffset = NameEntryStringOffset == 6 ? 4 : 0;
+		Off::FNameEntry::NamePool::StringOffset = static_cast<int32>(NameEntryStringOffset);
+		Off::FNameEntry::NamePool::HeaderOffset = static_cast<int32>(NameEntryStringOffset == 6 ? 4 : 0);
 
 		uint8* AssumedBytePropertyEntry = *reinterpret_cast<uint8* const*>(FirstChunkPtr) + NameEntryStringOffset + NoneStrLen;
 
@@ -61,7 +61,7 @@ void FNameEntry::Init(const uint8_t* FirstChunkPtr, int64 NameEntryStringOffset)
 
 		if (FNameEntryLengthShiftCount == MaxAllowedShiftCount)
 		{
-			std::cout << "\Dumper-7: Error, couldn't get FNameEntryLengthShiftCount!\n" << std::endl;
+			std::cout << "Dumper-7: Error, couldn't get FNameEntryLengthShiftCount!\n" << std::endl;
 			GetStr = [](uint8* NameEntry)->std::string { return "Invalid FNameEntryLengthShiftCount!"; };
 			return;
 		}
@@ -87,7 +87,7 @@ void FNameEntry::Init(const uint8_t* FirstChunkPtr, int64 NameEntryStringOffset)
 			if (HeaderWithoutNumber & NameWideMask)
 			{
 				std::wstring WString(reinterpret_cast<const wchar_t*>(NameEntry + Off::FNameEntry::NamePool::StringOffset), NameLen);
-				return std::string(WString.begin(), WString.end());
+				return WideToString(WString);
 			}
 
 			return std::string(reinterpret_cast<const char*>(NameEntry + Off::FNameEntry::NamePool::StringOffset), NameLen);
@@ -127,7 +127,7 @@ void FNameEntry::Init(const uint8_t* FirstChunkPtr, int64 NameEntryStringOffset)
 			if (NameIdx & NameWideMask)
 			{
 				std::wstring WString(reinterpret_cast<const wchar_t*>(NameString));
-				return std::string(WString.begin(), WString.end());
+				return WideToString(WString);
 			}
 
 			return reinterpret_cast<const char*>(NameString);
@@ -274,12 +274,12 @@ bool NameArray::InitializeNamePool(uint8_t* NamePool)
 		return false;
 
 	NameEntryStride = FNameEntryHeaderSize == 2 ? 2 : 4;
-	Off::InSDK::NameArray::FNameEntryStride = NameEntryStride;
+	Off::InSDK::NameArray::FNameEntryStride = static_cast<int32>(NameEntryStride);
 
 	ByIndex = [](void* NamesArray, int32 ComparisonIndex, int32 NamePoolBlockOffsetBits) -> void*
 	{
 		const int32 ChunkIdx = ComparisonIndex >> NamePoolBlockOffsetBits;
-		const int32 InChunkOffset = (ComparisonIndex & ((1 << NamePoolBlockOffsetBits) - 1)) * NameEntryStride;
+		const int32 InChunkOffset = static_cast<int32>((ComparisonIndex & ((1 << NamePoolBlockOffsetBits) - 1)) * NameEntryStride);
 
 		const bool bIsBeyondLastChunk = ChunkIdx == NameArray::GetNumChunks() && InChunkOffset > NameArray::GetByteCursor();
 

@@ -115,7 +115,7 @@ public:
 
 	inline FString(const wchar_t* WChar)
 	{
-		MaxElements = NumElements = *WChar ? std::wcslen(WChar) + 1 : 0;
+		MaxElements = NumElements = *WChar ? static_cast<int32>(std::wcslen(WChar)) + 1 : 0;
 
 		if (NumElements)
 		{
@@ -143,7 +143,7 @@ public:
 		if (IsValid())
 		{
 			std::wstring WData(Data);
-			return std::string(WData.begin(), WData.end());
+			return WideToString(WData);
 		}
 
 		return "";

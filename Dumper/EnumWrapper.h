@@ -21,7 +21,7 @@ public:
     std::pair<std::string, bool> GetUniqueName() const;
     uint8 GetUnderlyingTypeSize() const;
 
-    int32 GetNumMembers() const;
+    size_t GetNumMembers() const;
 
     CollisionInfoIterator GetMembers() const;
 

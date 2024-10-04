@@ -14,28 +14,36 @@ inline std::string str_tolower(std::string S)
 }
 
 template<typename CharType>
-inline int32_t StrlenHelper(const CharType* Str)
+inline size_t StrlenHelper(CharType Str)
 {
-	if constexpr (std::is_same<CharType, char>())
+	if constexpr (std::is_same<CharType, const char*>())
 	{
 		return strlen(Str);
 	}
-	else
+	else if  constexpr (std::is_same<CharType, const wchar_t*>())
 	{
 		return wcslen(Str);
+	}
+	else
+	{
+		throw 1;
 	}
 }
 
 template<typename CharType>
-inline bool StrnCmpHelper(const CharType* Left, const CharType* Right, size_t NumCharsToCompare)
+inline bool StrnCmpHelper(CharType Left, CharType Right, size_t NumCharsToCompare)
 {
-	if constexpr (std::is_same<CharType, char>())
+	if constexpr (std::is_same<CharType, const char*>())
 	{
 		return strncmp(Left, Right, NumCharsToCompare) == 0;
 	}
-	else
+	else if  constexpr (std::is_same<CharType, const wchar_t*>())
 	{
 		return wcsncmp(Left, Right, NumCharsToCompare) == 0;
+	}
+	else
+	{
+		throw 1;
 	}
 }
 
@@ -194,7 +202,7 @@ inline uintptr_t GetImageBase()
 	return reinterpret_cast<uintptr_t>(GetPEB()->ImageBaseAddress);
 }
 
-inline std::pair<uintptr_t, uintptr_t> GetImageBaseAndSize()
+inline std::pair<uintptr_t, DWORD> GetImageBaseAndSize()
 {
 	uintptr_t ImageBase = GetImageBase();
 	PIMAGE_NT_HEADERS NtHeader = reinterpret_cast<PIMAGE_NT_HEADERS>(ImageBase + reinterpret_cast<PIMAGE_DOS_HEADER>(ImageBase)->e_lfanew);
@@ -228,17 +236,17 @@ inline std::pair<uintptr_t, DWORD> GetSectionByName(uintptr_t ImageBase, const s
 	return { NULL, 0 };
 }
 
-inline uintptr_t GetOffset(const uintptr_t Address)
+inline uint32_t GetOffset(const uintptr_t Address)
 {
 	static uintptr_t ImageBase = 0x0;
 
 	if (ImageBase == 0x0)
 		ImageBase = GetImageBase();
 
-	return Address > ImageBase ? (Address - ImageBase) : 0x0;
+	return static_cast<uint32_t>(Address > ImageBase ? (Address - ImageBase) : 0x0);
 }
 
-inline uintptr_t GetOffset(const void* Address)
+inline uint32_t GetOffset(const void* Address)
 {
 	return GetOffset(reinterpret_cast<const uintptr_t>(Address));
 }
@@ -276,6 +284,37 @@ inline bool IsBadReadPtr(const uintptr_t Ptr)
 	return IsBadReadPtr(reinterpret_cast<const void*>(Ptr));
 }
 
+
+
+inline std::string WideToString(const wchar_t* str)
+{
+	if (str == nullptr)
+		return "";
+
+	size_t length =	wcslen(str);
+	const auto sz = WideCharToMultiByte(CP_UTF8, 0, str, static_cast<int>(length), nullptr, 0, nullptr, nullptr);
+	if (sz <= 0) 
+		return "";
+
+	std::string result(sz, 0);
+	WideCharToMultiByte(CP_UTF8, 0, str, static_cast<int>(length), &result.at(0), sz, nullptr, nullptr);
+	return result;
+}
+
+
+
+inline std::string WideToString(std::wstring& str)
+{
+	if (str.empty()) return "";
+
+	const auto sz = WideCharToMultiByte(CP_UTF8, 0, &str.at(0), (int)str.size(), nullptr, 0, nullptr, nullptr);
+	if (sz <= 0) return "";
+
+	std::string result(sz, 0);
+	WideCharToMultiByte(CP_UTF8, 0, &str.at(0), (int)str.size(), &result.at(0), sz, nullptr, nullptr);
+	return result;
+}
+
 inline LDR_DATA_TABLE_ENTRY* GetModuleLdrTableEntry(const char* SearchModuleName)
 {
 	PEB* Peb = GetPEB();
@@ -288,7 +327,7 @@ inline LDR_DATA_TABLE_ENTRY* GetModuleLdrTableEntry(const char* SearchModuleName
 		LDR_DATA_TABLE_ENTRY* Entry = reinterpret_cast<LDR_DATA_TABLE_ENTRY*>(P);
 
 		std::wstring WideModuleName(Entry->BaseDllName.Buffer, Entry->BaseDllName.Length >> 1);
-		std::string ModuleName = std::string(WideModuleName.begin(), WideModuleName.end());
+		std::string ModuleName = WideToString(WideModuleName);
 
 		if (str_tolower(ModuleName) == str_tolower(SearchModuleName))
 			return Entry;
@@ -438,7 +477,7 @@ inline void* GetExportAddress(const char* SearchModuleName, const char* SearchFu
 	const WORD* Ordinals = reinterpret_cast<const WORD*>(ModuleBase + ExportTable->AddressOfNameOrdinals);
 
 	/* Iterate all names and return the function if the name matches what we're looking for */
-	for (int i = 0; i < ExportTable->NumberOfFunctions; i++)
+	for (DWORD i = 0; i < ExportTable->NumberOfFunctions; i++)
 	{
 		const WORD NameIndex = Ordinals[i];
 		const char* Name = reinterpret_cast<const char*>(ModuleBase + NameOffsets[NameIndex]);
@@ -480,7 +519,7 @@ inline void* FindPatternInRange(std::vector<int>&& Signature, const uint8_t* Sta
 			if (bRelative)
 			{
 				if (Offset == -1)
-					Offset = PatternLength;
+					Offset = static_cast<uint32_t>(PatternLength);
 
 				Address = ((Address + Offset + 4) + *reinterpret_cast<int32_t*>(Address + Offset));
 			}
@@ -575,7 +614,7 @@ inline T* FindAlignedValueInProcess(T Value, const std::string& Sectionname = ".
 	const auto [ImageBase, ImageSize] = GetImageBaseAndSize();
 
 	uintptr_t SearchStart = ImageBase;
-	uintptr_t SearchRange = ImageSize;
+	uint32_t SearchRange = ImageSize;
 
 	if (!bSearchAllSections)
 	{
@@ -772,7 +811,7 @@ public:
 		if (Range > 0xFFFF)
 			Range = 0xFFFF;
 
-		for (int i = 0; i < Range; i++)
+		for (size_t i = 0; i < Range; i++)
 		{
 			if (IsFunctionRet(Get<uint8_t>() + i))
 				return Address + i;
@@ -874,9 +913,9 @@ inline MemAddress FindByString(Type RefStr)
 
 	const auto RetfStrLength = StrlenHelper(RefStr);
 
-	for (int i = 0; i < RDataSize; i++)
+	for (DWORD i = 0; i < RDataSize; i++)
 	{
-		if (StrnCmpHelper(RefStr, reinterpret_cast<Type>(RDataSection + i), RetfStrLength) == 0)
+		if (StrnCmpHelper<Type>(RefStr, reinterpret_cast<Type>(RDataSection + i), RetfStrLength) == 0)
 		{
 			StringAddress = RDataSection + i;
 			break;
@@ -886,7 +925,7 @@ inline MemAddress FindByString(Type RefStr)
 	if (!StringAddress)
 		return nullptr;
 
-	for (int i = 0; i < TextSize; i++)
+	for (DWORD i = 0; i < TextSize; i++)
 	{
 		// opcode: lea
 		const uint8_t CurrentByte = *reinterpret_cast<const uint8_t*>(TextSection + i);
@@ -911,7 +950,7 @@ inline MemAddress FindByWString(const wchar_t* RefStr)
 
 /* Slower than FindByString */
 template<bool bCheckIfLeaIsStrPtr = false, typename CharType = char>
-inline MemAddress FindByStringInAllSections(const CharType* RefStr, uintptr_t StartAddress = 0x0, int32_t Range = 0x0)
+inline MemAddress FindByStringInAllSections(const CharType* RefStr, uintptr_t StartAddress = 0x0, uint32_t Range = 0x0)
 {
 	static_assert(std::is_same_v<CharType, char> || std::is_same_v<CharType, wchar_t>, "FindByStringInAllSections only supports 'char' and 'wchar_t', but was called with other type.");
 
@@ -928,7 +967,7 @@ inline MemAddress FindByStringInAllSections(const CharType* RefStr, uintptr_t St
 
 	/* Add a few bytes to the StartAddress to prevent instantly returning the previous result */
 	uint8_t* SearchStart = StartAddress ? (reinterpret_cast<uint8_t*>(StartAddress) + 0x5) : reinterpret_cast<uint8_t*>(ImageBase);
-	DWORD SearchRange = StartAddress ? ImageEnd - StartAddress : ImageSize;
+	DWORD SearchRange    = static_cast<DWORD>(StartAddress ? ImageEnd - StartAddress : ImageSize);
 
 	if (Range != 0x0)
 		SearchRange = min(Range, SearchRange);
@@ -936,7 +975,7 @@ inline MemAddress FindByStringInAllSections(const CharType* RefStr, uintptr_t St
 	if ((StartAddress + SearchRange) >= ImageEnd)
 		SearchRange -= OffsetFromMemoryEnd;
 
-	const int32_t RefStrLen = StrlenHelper(RefStr);
+	const size_t RefStrLen = StrlenHelper(RefStr);
 
 	const uintptr_t OtherStringRef = GetImageBase() + 0x4AF5973;
 
@@ -977,7 +1016,7 @@ inline MemAddress FindUnrealExecFunctionByString(Type RefStr, void* StartAddress
 	uint8_t* SearchStart = StartAddress ? reinterpret_cast<uint8_t*>(StartAddress) : reinterpret_cast<uint8_t*>(ImageBase);
 	DWORD SearchRange = ImageSize;
 
-	const int32_t RefStrLen = StrlenHelper(RefStr);
+	const size_t RefStrLen = StrlenHelper(RefStr);
 
 	static auto IsValidExecFunctionNotSetupFunc = [](uintptr_t Address) -> bool
 	{

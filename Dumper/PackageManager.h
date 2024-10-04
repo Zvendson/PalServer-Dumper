@@ -107,7 +107,7 @@ public:
 	/* Returns a pair of name and CollisionCount */
 	std::string GetName() const;
 	const StringEntry& GetNameEntry() const;
-	std::pair<std::string, uint8> GetNameCollisionPair() const;
+	std::pair<std::string, uint64> GetNameCollisionPair() const;
 
 	bool HasClasses() const;
 	bool HasStructs() const;
@@ -144,16 +144,16 @@ private:
 
 private:
 	const MapType& PackageInfos;
-	uint8 CurrentIterationHitCount;
+	uint64 CurrentIterationHitCount;
 	IteratorType It;
 
 private:
-	explicit PackageInfoIterator(const MapType& Infos, uint8 IterationHitCount, IteratorType ItPos)
+	explicit PackageInfoIterator(const MapType& Infos, uint64 IterationHitCount, IteratorType ItPos)
 		: PackageInfos(Infos), CurrentIterationHitCount(IterationHitCount), It(ItPos)
 	{
 	}
 
-	explicit PackageInfoIterator(const MapType& Infos, uint8 IterationHitCount)
+	explicit PackageInfoIterator(const MapType& Infos, uint64 IterationHitCount)
 		: PackageInfos(Infos), CurrentIterationHitCount(IterationHitCount), It(Infos.cbegin())
 	{
 	}

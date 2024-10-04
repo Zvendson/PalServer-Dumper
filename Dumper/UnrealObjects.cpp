@@ -329,7 +329,7 @@ std::string UEObject::GetFullName(int32& OutNameLength) const
 		}
 
 		std::string Name = GetName();
-		OutNameLength = Name.size() + 1;
+		OutNameLength = static_cast<int32>(Name.size() + 1);
 
 		Name = GetClass().GetName() + " " + Temp + Name;
 

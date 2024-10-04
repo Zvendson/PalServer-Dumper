@@ -206,7 +206,7 @@ namespace OffsetFinder
 		constexpr float MinPercentage = 0.03f;
 
 		/* Minimum required ammount of names for which FName::Number is in a [1...4] range */
-		const int32 FNameNumberThreashold = (ObjectArray::Num() * MinPercentage);
+		const int32 FNameNumberThreashold = static_cast<int32>(ObjectArray::Num() * MinPercentage);
 
 		Off::FName::CompIdx = 0x0;
 

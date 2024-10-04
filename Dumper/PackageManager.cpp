@@ -39,7 +39,7 @@ std::string PackageInfoHandle::GetName() const
 	return Name.GetName() + "_" + std::to_string(Info->CollisionCount - 1);
 }
 
-std::pair<std::string, uint8> PackageInfoHandle::GetNameCollisionPair() const
+std::pair<std::string, uint64> PackageInfoHandle::GetNameCollisionPair() const
 {
 	const StringEntry& Name = GetNameEntry();
 

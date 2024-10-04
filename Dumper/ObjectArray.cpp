@@ -252,7 +252,7 @@ void ObjectArray::Init(bool bScanAllMemory)
 		return false;
 	};
 
-	for (int i = 0; i < SearchRange; i += 0x4)
+	for (DWORD i = 0; i < SearchRange; i += 0x4)
 	{
 		const uintptr_t CurrentAddress = SearchBase + i;
 
@@ -262,7 +262,7 @@ void ObjectArray::Init(bool bScanAllMemory)
 			Off::FUObjectArray::Num = 0xC;
 			NumElementsPerChunk = -1;
 
-			Off::InSDK::ObjArray::GObjects = (SearchBase + i) - ImageBase;
+			Off::InSDK::ObjArray::GObjects = static_cast<int32>((SearchBase + i) - ImageBase);
 
 			std::cout << "Found FFixedUObjectArray GObjects at offset 0x" << std::hex << Off::InSDK::ObjArray::GObjects << std::dec << "\n\n";
 
@@ -290,7 +290,7 @@ void ObjectArray::Init(bool bScanAllMemory)
 			Off::FUObjectArray::Num = 0x14;
 			FUObjectItemInitialOffset = 0x0;
 
-			Off::InSDK::ObjArray::GObjects = (SearchBase + i) - ImageBase;
+			Off::InSDK::ObjArray::GObjects = static_cast<int32>((SearchBase + i) - ImageBase);
 
 			std::cout << "Found FChunkedFixedUObjectArray GObjects at offset 0x" << std::hex << Off::InSDK::ObjArray::GObjects << std::dec << "\n\n";
 

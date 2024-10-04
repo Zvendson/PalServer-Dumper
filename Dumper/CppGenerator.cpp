@@ -107,7 +107,7 @@ std::string CppGenerator::GenerateMembers(const StructWrapper& Struct, const Mem
 		/* Padding between two bitfields at different byte-offsets */
 		if (CurrentPropertyEnd > PrevPropertyEnd && bLastPropertyWasBitField && bIsBitField && PrevBitPropertyEndBit < PrevNumBitsInUnderlayingType && !bIsUnion)
 		{
-			OutMembers += GenerateBitPadding(PrevBitPropertySize, PrevBitPropertyEndBit, PrevBitPropertyOffset, PrevNumBitsInUnderlayingType - PrevBitPropertyEndBit, "Fixing Bit-Field Size For New Byte [ Dumper-7 ]");
+			OutMembers += GenerateBitPadding(PrevBitPropertySize, PrevBitPropertyEndBit, PrevBitPropertyOffset, static_cast<int32>(PrevNumBitsInUnderlayingType - PrevBitPropertyEndBit), "Fixing Bit-Field Size For New Byte [ Dumper-7 ]");
 			PrevBitPropertyEndBit = 0;
 		}
 

@@ -65,6 +65,11 @@ inline void InitSettings()
 }
 
 
+void Generator::InitModule(HMODULE module)
+{
+	Generator::Module = module;
+}
+
 void Generator::InitEngineCore()
 {
 	/* manual override */
@@ -111,15 +116,38 @@ void Generator::InitInternal()
 	PackageManager::PostInit();
 }
 
+std::string GetDllDirectoryPath(HMODULE hModule)
+{
+	char path[MAX_PATH] = { 0 };
+
+	// Get the full path of the module (DLL)
+	GetModuleFileNameA(hModule, path, MAX_PATH);
+
+	// Convert the full path to a std::string
+	std::string fullPath(path);
+
+	// Find the last backslash to extract the folder path
+	size_t lastBackslashPos = fullPath.find_last_of("\\/");
+	if (lastBackslashPos != std::string::npos)
+	{
+		return fullPath.substr(0, lastBackslashPos);  // Return the folder path
+	}
+
+	return "";  // If for some reason the path is invalid, return an empty string
+}
+
 bool Generator::SetupDumperFolder()
 {
 	try
 	{
+		std::string dllDir = GetDllDirectoryPath(Generator::Module);
 		std::string FolderName = (Settings::Generator::GameVersion + '-' + Settings::Generator::GameName);
 
 		FileNameHelper::MakeValidFileName(FolderName);
 
-		DumperFolder = fs::path(Settings::Generator::SDKGenerationPath) / FolderName;
+		DumperFolder = fs::path(dllDir) / Settings::Generator::SDKGenerationPath / FolderName;
+
+		std::cout << "Path: " << DumperFolder.generic_string() << "\n";
 
 		if (fs::exists(DumperFolder))
 		{

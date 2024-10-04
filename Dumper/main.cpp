@@ -28,6 +28,7 @@ DWORD MainThread(HMODULE Module)
 
 	std::cout << "Started Generation [Dumper-7]!\n";
 
+	Generator::InitModule(Module);
 	Generator::InitEngineCore();
 	Generator::InitInternal();
 

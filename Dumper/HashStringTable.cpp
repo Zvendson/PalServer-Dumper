@@ -43,12 +43,12 @@ StringEntry& HashStringTable::GetRefToEmpty(const StringBucket& Bucket)
     return *reinterpret_cast<StringEntry*>(Bucket.Data + Bucket.Size);
 }
 
-const StringEntry& HashStringTable::GetStringEntry(const StringBucket& Bucket, int32 InBucketIndex) const
+const StringEntry& HashStringTable::GetStringEntry(const StringBucket& Bucket, uint32 InBucketIndex) const
 {
     return *reinterpret_cast<StringEntry*>(Bucket.Data + InBucketIndex);
 }
 
-const StringEntry& HashStringTable::GetStringEntry(int32 BucketIndex, int32 InBucketIndex) const
+const StringEntry& HashStringTable::GetStringEntry(uint32 BucketIndex, uint32 InBucketIndex) const
 {
     assert(BucketIndex < 32 && "Bucket index out of range!");
 

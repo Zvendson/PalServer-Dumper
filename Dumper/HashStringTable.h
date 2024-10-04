@@ -273,8 +273,8 @@ private:
     bool CanFit(const StringBucket& Bucket, int32 StrLengthBytes) const;
 
     StringEntry& GetRefToEmpty(const StringBucket& Bucket);
-    const StringEntry& GetStringEntry(const StringBucket& Bucket, int32 InBucketIndex) const;
-    const StringEntry& GetStringEntry(int32 BucketIndex, int32 InBucketIndex) const;
+    const StringEntry& GetStringEntry(const StringBucket& Bucket, uint32 InBucketIndex) const;
+    const StringEntry& GetStringEntry(uint32 BucketIndex, uint32 InBucketIndex) const;
 
     void ResizeBucket(StringBucket& Bucket);
 

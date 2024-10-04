@@ -801,10 +801,49 @@ void CppGenerator::GenerateEnum(const EnumWrapper& Enum, StreamType& StructFile)
 	int32 NumValues = 0x0;
 	std::string MemberString;
 
+	auto type = GetEnumUnderlayingType(Enum);
+	std::string maxName  = "";
+	uint64      maxValue = 0;
+
 	for (const EnumCollisionInfo& Info : EnumValueIterator)
 	{
+		std::string uniqueName = Info.GetUniqueName();
+		uint64      value      = Info.GetValue();
+
+		/* 
+		Maybe not the most elegant way but its hard to modify this amazing tool without fucking up somewhere else haha.
+		My goal here is to remove a warning, where enums with a last field of _MAX that exceed the enums underlying type size
+		that the field is declared outside the enum as constexpr. I have no idea if the value is important somewhere, so thats
+		the workd around for now.
+		*/
+		if (uniqueName.ends_with("_MAX"))
+		{
+			if (   (type == "uint8"  && value > (uint8)-1)
+				|| (type == "uint16" && value > (uint16)-1)
+				|| (type == "uint32" && value > (uint32)-1)
+				|| (type == "uint64" && value > (uint64)-1))
+			{
+				maxName = uniqueName;
+				maxValue = value;
+				continue;
+			}
+		}
+
+		/* 
+		i know... xD but idc now. i will open an issue and point out on these warning and let the author fix it correctly
+		so i can actually focus on just using the SDK than working on it.
+		*/
+		if (type == "uint8"  && value > (uint8)-1)
+			value = (uint8)-1;
+		else if (type == "uint16" && value > (uint16)-1)
+			value = (uint16)-1;
+		else if (type == "uint32" && value > (uint32)-1)
+			value = (uint32)-1;
+		else if (type == "uint64" && value > (uint64)-1)
+			value = (uint64)-1;
+
 		NumValues++;
-		MemberString += std::format("\t{:{}} = {},\n", Info.GetUniqueName(), 40, Info.GetValue());
+		MemberString += std::format("\t{:{}} = {},\n", uniqueName, 40, value);
 	}
 
 	if (!MemberString.empty()) [[likely]]
@@ -816,12 +855,13 @@ void CppGenerator::GenerateEnum(const EnumWrapper& Enum, StreamType& StructFile)
 enum class {} : {}
 {{
 {}
-}};
+}};{}
 )", Enum.GetFullName()
   , NumValues
   , GetEnumPrefixedName(Enum)
   , GetEnumUnderlayingType(Enum)
-  , MemberString);
+  , MemberString
+  , maxName.empty() ? "" : std::format("\ninline constexpr size_t {} = {};", maxName, maxValue));
 }
 
 std::string CppGenerator::GetStructPrefixedName(const StructWrapper& Struct)
@@ -1080,7 +1120,17 @@ std::string CppGenerator::GetMemberTypeStringWithoutConst(UEProperty Member, int
 	}
 	else if (Flags & EClassCastFlags::FieldPathProperty)
 	{
-		return std::format("TFieldPath<struct {}>", Member.Cast<UEFieldPathProperty>().GetFielClass().GetCppName());
+		auto name = Member.Cast<UEFieldPathProperty>().GetFielClass().GetCppName();
+		
+		/* 
+		idk... hitting a dead end here, lol. 
+		I dislike it but have to focus on other things.
+		I just want to get rid of the warnings.
+		*/
+		if (name == "FField")
+		    return std::format("TFieldPath<class {}>", name);
+
+		return std::format("TFieldPath<struct {}>", name);
 	}
 	else if (Flags & EClassCastFlags::OptionalProperty)
 	{
@@ -2567,9 +2617,9 @@ R"({
 		},
 		PredefinedFunction {
 			.CustomComment = "",
-			.ReturnType = "FVector", .NameWithParams = "operator*(float Scalar)", .Body =
+			.ReturnType = "FVector", .NameWithParams = "operator*(UnderlayingType Scalar)", .Body =
 R"({
-	return { X * Scalar, Y * Scalar, Z * Scalar };
+	return { X * static_cast<double>(Scalar), Y * static_cast<double>(Scalar), Z * static_cast<double>(Scalar) };
 })",
 			.bIsStatic = false, .bIsConst = true, .bIsBodyInline = true
 		},
@@ -2583,12 +2633,12 @@ R"({
 		},
 		PredefinedFunction {
 			.CustomComment = "",
-			.ReturnType = "FVector", .NameWithParams = "operator/(float Scalar)", .Body =
+			.ReturnType = "FVector", .NameWithParams = "operator/(UnderlayingType Scalar)", .Body =
 R"({
-	if (Scalar == 0.0f)
+	if (Scalar == static_cast<UnderlayingType>(0.0))
 		return *this;
 
-	return { X / Scalar, Y / Scalar, Z / Scalar };
+	return { X / static_cast<double>(Scalar), Y / static_cast<double>(Scalar), Z / static_cast<double>(Scalar) };
 })",
 			.bIsStatic = false, .bIsConst = true, .bIsBodyInline = true
 		},
@@ -2596,7 +2646,7 @@ R"({
 			.CustomComment = "",
 			.ReturnType = "FVector", .NameWithParams = "operator/(const FVector& Other)", .Body =
 R"({
-	if (Other.X == 0.0f || Other.Y == 0.0f ||Other.Z == 0.0f)
+	if (Other.X == 0.0 || Other.Y == 0.0 ||Other.Z == 0.0)
 		return *this;
 
 	return { X / Other.X, Y / Other.Y, Z / Other.Z };
@@ -2641,7 +2691,7 @@ R"({
 		},
 		PredefinedFunction {
 			.CustomComment = "",
-			.ReturnType = "FVector&", .NameWithParams = "operator*=(float Scalar)", .Body =
+			.ReturnType = "FVector&", .NameWithParams = "operator*=(UnderlayingType Scalar)", .Body =
 R"({
 	*this = *this * Scalar;
 	return *this;
@@ -2659,7 +2709,7 @@ R"({
 		},
 		PredefinedFunction {
 			.CustomComment = "",
-			.ReturnType = "FVector&", .NameWithParams = "operator/=(float Scalar)", .Body =
+			.ReturnType = "FVector&", .NameWithParams = "operator/=(UnderlayingType Scalar)", .Body =
 R"({
 	*this = *this / Scalar;
 	return *this;
@@ -2689,7 +2739,7 @@ R"({
 			.CustomComment = "",
 			.ReturnType = "UnderlayingType", .NameWithParams = "Dot(const FVector& Other)", .Body =
 R"({
-	return (X * Other.X) + (Y * Other.Y) + (Z * Other.Z);
+	return static_cast<UnderlayingType>((X * Other.X) + (Y * Other.Y) + (Z * Other.Z));
 })",
 			.bIsStatic = false, .bIsConst = true, .bIsBodyInline = true
 		},
@@ -2697,7 +2747,7 @@ R"({
 			.CustomComment = "",
 			.ReturnType = "UnderlayingType", .NameWithParams = "Magnitude()", .Body =
 R"({
-	return std::sqrt((X * X) + (Y * Y) + (Z * Z));
+    return static_cast<UnderlayingType>(std::sqrt((X * X) + (Y * Y) + (Z * Z)));
 })",
 			.bIsStatic = false, .bIsConst = true, .bIsBodyInline = true
 		},

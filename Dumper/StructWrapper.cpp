@@ -31,7 +31,11 @@ std::string StructWrapper::GetRawName() const
 
 std::string StructWrapper::GetFullName() const
 {
-    return bIsUnrealStruct ? Struct.GetFullName() : "Predefined struct " + PredefStruct->UniqueName;
+    const char* prefix = "Predefined struct ";
+    if (IsClass())
+        prefix = "Predefined class ";
+
+    return bIsUnrealStruct ? Struct.GetFullName() : prefix + PredefStruct->UniqueName;
 }
 
 StructWrapper StructWrapper::GetSuper() const

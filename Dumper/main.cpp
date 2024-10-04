@@ -24,11 +24,6 @@ enum class EFortToastType : uint8
 
 DWORD MainThread(HMODULE Module)
 {
-	AllocConsole();
-	FILE* Dummy;
-	freopen_s(&Dummy, "CONOUT$", "w", stdout);
-	freopen_s(&Dummy, "CONIN$", "r", stdin);
-
 	auto t_1 = std::chrono::high_resolution_clock::now();
 
 	std::cout << "Started Generation [Dumper-7]!\n";
@@ -52,7 +47,7 @@ DWORD MainThread(HMODULE Module)
 		Settings::Generator::GameVersion = Version.ToString();
 	}
 
-	std::cout << "GameName: " << Settings::Generator::GameName << "\n";
+	std::cout << "GameName:    " << Settings::Generator::GameName << "\n";
 	std::cout << "GameVersion: " << Settings::Generator::GameVersion << "\n\n";
 
 	Generator::Generate<CppGenerator>();
@@ -68,20 +63,19 @@ DWORD MainThread(HMODULE Module)
 
 	std::cout << "\n\nGenerating SDK took (" << ms_double_.count() << "ms)\n\n\n";
 
+#ifdef _DEBUG
 	while (true)
 	{
 		if (GetAsyncKeyState(VK_F6) & 1)
 		{
-			fclose(stdout);
-			if (Dummy) fclose(Dummy);
-			FreeConsole();
-
-			FreeLibraryAndExitThread(Module, 0);
+			break;
 		}
 
 		Sleep(100);
 	}
+#endif
 
+	FreeLibraryAndExitThread(Module, 0);
 	return 0;
 }
 
